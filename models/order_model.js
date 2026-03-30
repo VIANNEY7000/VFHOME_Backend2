@@ -51,6 +51,10 @@ const orderSchema = new mongoose.Schema(
     paymentStatus: {
       type: String,
       default: "Pending"
+    },
+     paymentReference: {
+      type: String,
+      default: ""
     }
   },
   { timestamps: true }

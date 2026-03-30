@@ -42,7 +42,9 @@ export const createOrder = async (req, res) => {
       state,
       country,
       items,
-      totalPrice
+      totalPrice,
+      paymentStatus: paymentStatus || "Pending",
+      paymentReference: paymentReference || ""
     });
 
     res.status(201).json({
