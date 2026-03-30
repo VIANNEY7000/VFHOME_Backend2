@@ -3,6 +3,8 @@ import express from 'express'
 import cors from "cors"
 import connectDB from "./config/db.js"
 import userRoute from './routes/user_route.js'
+import producRouter from './routes/product_route.js'
+
 
 
 dotenv.config()
@@ -12,8 +14,10 @@ app.use(cors());
 
 app.use(express.json())
 
-
+// ROUTE
 app.use('/api/auth', userRoute)
+app.use('/api/products', producRouter)
+
 
 
 // PORT LISTEN
