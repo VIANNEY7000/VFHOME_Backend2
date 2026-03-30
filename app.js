@@ -4,6 +4,7 @@ import cors from "cors"
 import connectDB from "./config/db.js"
 import userRoute from './routes/user_route.js'
 import producRouter from './routes/product_route.js'
+import orderRoute from './routes/order_route.js'
 
 
 
@@ -17,6 +18,7 @@ app.use(express.json())
 // ROUTE
 app.use('/api/auth', userRoute)
 app.use('/api/products', producRouter)
+app.use('/api/orders', orderRoute)
 
 
 
