@@ -1,6 +1,9 @@
 import express from "express";
 import {
-  initializePayment, verifyPayment, paystackWebhook} from "../controller/paystack_controller.js";
+  initializePayment,
+  verifyPayment,
+  paystackWebhook
+} from "../controller/paystack_controller.js";
 
 const router = express.Router();
 
