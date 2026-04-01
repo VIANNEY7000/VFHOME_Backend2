@@ -32,6 +32,17 @@ app.get('/test-paystack-key', (req, res) => {
   })
 })
 
+app.get('/test-paystack-key', (req, res) => {
+  res.json({
+    keyExists: !!process.env.PAYSTACK_SECRET_KEY,
+    keyPreview: process.env.PAYSTACK_SECRET_KEY
+      ? process.env.PAYSTACK_SECRET_KEY.slice(0, 10) + "..."
+      : "NOT FOUND",
+    testVar: process.env.TEST_VAR || "TEST_VAR NOT FOUND",
+    nodeEnv: process.env.NODE_ENV || "NODE_ENV NOT SET"
+  })
+})
+
 
 
 // PORT LISTEN
