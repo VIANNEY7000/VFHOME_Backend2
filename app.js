@@ -22,6 +22,17 @@ app.use('/api/orders', orderRoute)
 app.use('/api/paystack', paystackRoute)
 
 
+// for debuging
+app.get('/test-paystack-key', (req, res) => {
+  res.json({
+    keyExists: !!process.env.PAYSTACK_SECRET_KEY,
+    keyPreview: process.env.PAYSTACK_SECRET_KEY
+      ? process.env.PAYSTACK_SECRET_KEY.slice(0, 10) + "..."
+      : "NOT FOUND"
+  })
+})
+
+
 
 // PORT LISTEN
 const PORT = process.env.PORT || 5000
