@@ -90,12 +90,12 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    product.name = name || product.name;
-    product.price = price || product.price;
-    product.description = description || product.description;
-    product.image = image || product.image;
-    product.stock = stock || product.stock;
-    product.category = category || product.category;
+    product.name = name ?? product.name;
+    product.price = price ?? product.price;
+    product.description = description ?? product.description;
+    product.image = image ?? product.image;
+    product.stock = stock ?? product.stock;
+    product.category = category ?? product.category;
 
     await product.save();
 
