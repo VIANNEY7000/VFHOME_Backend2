@@ -1,32 +1,16 @@
 import axios from "axios";
 import { Order } from "../models/order_model.js";
 
-
-// INITIALIZE PAYMENT
+// Initialize Payment
 export const initializePayment = async (req, res) => {
   try {
     const { email, amount, metadata } = req.body;
 
-    console.log("Incoming payment data:", req.body);
-    console.log("Secret key exists:", !!process.env.PAYSTACK_SECRET_KEY);
-
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
-      {
-        email,
-        amount,
-        callback_url: "http://localhost:5173/payment-success",
-        metadata
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
+      { email, amount, callback_url: "http://localhost:5173/payment-success", metadata },
+      { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" } }
     );
-
-    console.log("Paystack response:", response.data);
 
     res.status(200).json({
       success: true,
@@ -34,55 +18,35 @@ export const initializePayment = async (req, res) => {
       reference: response.data.data.reference
     });
   } catch (error) {
-    console.error("FULL PAYSTACK ERROR:");
-    console.error(error.response?.data || error.message || error);
-
-    res.status(500).json({
-      success: false,
-      message: error.response?.data?.message || "Payment initialization failed"
-    });
+    console.error("PAYSTACK INIT ERROR:", error.response?.data || error.message);
+    res.status(500).json({ success: false, message: "Payment initialization failed" });
   }
 };
 
-// VERIFY PAYMENT
+// Verify Payment
 export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
 
-    const response = await axios.get(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
-        }
-      }
-    );
+    const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+    });
 
-    res.status(200).json({
-      success: true,
-      data: response.data.data
-    });
+    res.status(200).json({ success: true, data: response.data.data });
   } catch (error) {
-    console.error(error.response?.data || error.message);
-    res.status(500).json({
-      success: false,
-      message: "Payment verification failed"
-    });
+    console.error("PAYSTACK VERIFY ERROR:", error.response?.data || error.message);
+    res.status(500).json({ success: false, message: "Payment verification failed" });
   }
 };
 
+// Webhook to create order automatically
 export const paystackWebhook = async (req, res) => {
   try {
     const event = req.body;
 
-    // Only process successful payments
-    if (
-      event.event === "charge.success" &&
-      event.data.status === "success"
-    ) {
+    if (event.event === "charge.success" && event.data.status === "success") {
       const metadata = event.data.metadata;
 
-      // Create the order in DB
       const newOrder = await Order.create({
         fullName: metadata.fullName,
         email: metadata.email || event.data.customer.email,
@@ -94,10 +58,11 @@ export const paystackWebhook = async (req, res) => {
         items: metadata.cartItems,
         totalPrice: metadata.totalPrice,
         paymentStatus: "Paid",
-        paymentReference: event.data.reference
+        paymentReference: event.data.reference,
+        orderStatus: "Pending"
       });
 
-      console.log("Order created from webhook:", newOrder._id);
+      console.log("New order created from webhook:", newOrder._id);
     }
 
     res.sendStatus(200);
