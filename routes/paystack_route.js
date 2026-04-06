@@ -7,8 +7,8 @@ import {
 
 const router = express.Router();
 
-router.post("/paystack/initialize", initializePayment);
-router.get("/paystack/verify/:reference", verifyPayment);
-router.post("/paystack/webhook", paystackWebhook);
+router.post("/initialize", initializePayment);
+router.get("/verify/:reference", verifyPayment);
+router.post("/webhook", paystackWebhook);
 
 export default router;
