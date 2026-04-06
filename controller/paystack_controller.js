@@ -1,4 +1,6 @@
 import axios from "axios";
+import { Order } from "../models/order_model.js";
+
 
 // INITIALIZE PAYMENT
 export const initializePayment = async (req, res) => {
@@ -69,19 +71,38 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
-// WEBHOOK HANDLER
 export const paystackWebhook = async (req, res) => {
   try {
     const event = req.body;
 
-    console.log("Webhook received:", event);
+    // Only process successful payments
+    if (
+      event.event === "charge.success" &&
+      event.data.status === "success"
+    ) {
+      const metadata = event.data.metadata;
 
-    // For now, just log it
-    // Later we can update order payment status here
+      // Create the order in DB
+      const newOrder = await Order.create({
+        fullName: metadata.fullName,
+        email: metadata.email || event.data.customer.email,
+        phone: metadata.phone,
+        address: metadata.address,
+        city: metadata.city,
+        state: metadata.state,
+        country: metadata.country,
+        items: metadata.cartItems,
+        totalPrice: metadata.totalPrice,
+        paymentStatus: "Paid",
+        paymentReference: event.data.reference
+      });
+
+      console.log("Order created from webhook:", newOrder._id);
+    }
 
     res.sendStatus(200);
   } catch (error) {
-    console.error(error.message);
+    console.error("Webhook error:", error);
     res.sendStatus(500);
   }
 };
