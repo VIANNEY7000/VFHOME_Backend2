@@ -22,7 +22,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['admin', 'customer'],
     default: 'customer'
+  },
+
+  cart: [
+  {
+    productId: mongoose.Schema.Types.ObjectId,
+    quantity: Number
   }
+]
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

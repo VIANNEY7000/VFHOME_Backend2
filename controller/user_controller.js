@@ -40,7 +40,7 @@ if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    res.json({ token, user: { name: user.name, email: user.email, role: user.role } });
+    res.json({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -93,19 +93,29 @@ export const updateUser = async (req, res) => {
 
     user.name = name || user.name;
     user.email = email || user.email;
-    user.role = role || user.role;
+
+    // ✅ Restrict role change
+    if (role && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not allowed to change role" });
+    }
+
+    if (role) user.role = role;
 
     if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      user.password = hashedPassword;
+      user.password = await bcrypt.hash(password, 10);
     }
 
     await user.save();
 
     res.status(200).json({
       message: "User updated successfully",
-      user: { name: user.name, email: user.email, role: user.role },
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
     });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -113,7 +123,48 @@ export const updateUser = async (req, res) => {
 
 
 
-// FORGOT PASSWORD
+// GET CURRENT USER
+export const getMe = async (req, res) => {
+  const user = await User.findById(req.user.id).select('-password');
+
+  res.json(user);
+};
+
+// UPDATE PROFILE
+export const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update fields (ensure only allowed fields)
+    const { name, email, address } = req.body;
+
+    user.name = name || user.name;
+    user.email = email || user.email;
+
+    if (address) {
+      user.address = {
+        street: address.street || user.address?.street,
+        city: address.city || user.address?.city,
+        state: address.state || user.address?.state,
+        zip: address.zip || user.address?.zip,
+        country: address.country || user.address?.country,
+      };
+    }
+
+    await user.save();
+
+    res.status(200).json({ message: 'Profile updated', user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+// FORGOTTEN PASSWORD
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
@@ -124,24 +175,27 @@ export const forgotPassword = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // generate token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // Generate raw token
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // save hashed token (security)
-    user.resetPasswordToken = resetToken;
+    // Hash token before saving (SECURITY FIX)
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.resetPasswordToken = hashedToken;
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 mins
 
     await user.save();
 
+    // Send raw token in link (NOT hashed)
     const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
 
-    //  send email (we’ll configure later)
     console.log("Reset link:", resetLink);
 
-    // ✅ include resetLink in response
     res.status(200).json({
-      message: "Password reset link sent",
-      resetLink: resetLink
+      message: "Password reset link sent"
     });
 
   } catch (error) {
@@ -156,8 +210,14 @@ export const resetPassword = async (req, res) => {
   const { password } = req.body;
 
   try {
+    // Hash incoming token to match DB
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() }
     });
 
@@ -165,16 +225,72 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-    // hash new password
+    // Hash new password
     user.password = await bcrypt.hash(password, 10);
 
-    // clear token
+    // Clear reset fields
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
     await user.save();
 
     res.json({ message: "Password reset successful" });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+// ADD TO CART
+export const addToCart = async (req, res) => {
+  const { productId, quantity } = req.body;
+
+  // ✅ Validation
+  if (!productId || !quantity) {
+    return res.status(400).json({ message: "Invalid data" });
+  }
+
+  try {
+    const user = await User.findById(req.user.id);
+
+    // ✅ Ensure cart exists
+    if (!user.cart) {
+      user.cart = [];
+    }
+
+    const existingItem = user.cart.find(
+      item => item.productId.toString() === productId
+    );
+
+    if (existingItem) {
+      existingItem.quantity += quantity;
+    } else {
+      user.cart.push({ productId, quantity });
+    }
+
+    await user.save();
+
+    res.json({
+      message: "Item added to cart",
+      cart: user.cart
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET CART
+export const getCart = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .populate("cart.productId"); // optional but powerful
+
+    res.json({
+      cart: user.cart
+    });
 
   } catch (error) {
     res.status(500).json({ message: error.message });

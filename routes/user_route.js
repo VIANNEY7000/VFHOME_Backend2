@@ -1,13 +1,19 @@
 import express from 'express';
-import { register, login, forgotPassword, resetPassword, updateUser, deleteUser, getAllUsers } from '../controller/user_controller.js';
+import { register, login, forgotPassword, resetPassword, updateUser, deleteUser, getAllUsers, getMe, addToCart, getCart, updateProfile } from '../controller/user_controller.js';
 import { verifyToken, isAdmin } from '../middleware/auth_middleware.js';
 
 const router = express.Router();
+
 
 router.post('/register', register);
 router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
+router.get('/me', verifyToken, getMe);
+router.put('/me', verifyToken, updateProfile);
+router.post('/cart', verifyToken, addToCart);
+router.get("/cart",verifyToken, getCart);
+
 
 // Admin-only routes
 router.get('/', verifyToken, isAdmin, getAllUsers);
