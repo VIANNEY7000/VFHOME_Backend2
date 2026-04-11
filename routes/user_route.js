@@ -17,8 +17,8 @@ router.put('/me', verifyToken, updateProfile);
 // Cart
 router.post('/cart', verifyToken, addToCart);
 router.get("/cart",verifyToken, getCart);
-router.delete('/cart/remove', verifyToken, removeFromCart);
 router.delete('/cart/clear', verifyToken, clearCart);
+router.delete('/cart/remove/:productId', verifyToken, removeFromCart);
 router.put('/cart/update', verifyToken, updateCartQuantity);
 
 

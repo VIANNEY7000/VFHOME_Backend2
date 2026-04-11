@@ -300,7 +300,7 @@ export const getCart = async (req, res) => {
 
 // REMOVE FROM CART
 export const removeFromCart = async (req, res) => {
-  const { productId } = req.body;
+  const { productId } = req.params; // ✅ FIX HERE
 
   if (!productId) {
     return res.status(400).json({ message: "Product ID required" });
