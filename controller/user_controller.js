@@ -348,3 +348,35 @@ export const clearCart = async (req, res) => {
 
 
 
+// UPDATE CART QUANTITY
+export const updateCartQuantity = async (req, res) => {
+  const { productId, quantity } = req.body;
+
+  if (!productId || quantity < 1) {
+    return res.status(400).json({ message: "Invalid data" });
+  }
+
+  try {
+    const user = await User.findById(req.user.id);
+
+    const item = user.cart.find(
+      item => item.productId.toString() === productId
+    );
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found in cart" });
+    }
+
+    item.quantity = quantity;
+
+    await user.save();
+
+    res.json({
+      message: "Cart updated",
+      cart: user.cart
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
