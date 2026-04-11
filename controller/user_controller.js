@@ -27,6 +27,8 @@ await newUser.save();
 };
 
 
+
+
 // LOGIN
 export const login = async (req, res) => {
   try {
@@ -46,8 +48,10 @@ if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
   }
 };
 
-// GET ALL USERS
 
+
+
+// GET ALL USERS
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password'); 
@@ -66,6 +70,10 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+
+
+
+
 // DELETE USER
 export const deleteUser = async (req, res) => {
   try {
@@ -81,6 +89,10 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+
+
 
 // UPDATE USER
 export const updateUser = async (req, res) => {
@@ -123,11 +135,23 @@ export const updateUser = async (req, res) => {
 
 
 
-// GET CURRENT USER
-export const getMe = async (req, res) => {
-  const user = await User.findById(req.user.id).select('-password');
 
-  res.json(user);
+// GET CURRENT USER
+import { Order } from "../models/order_model.js";
+
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    const orders = await Order.find({ email: user.email }).sort({ createdAt: -1 });
+
+    res.json({
+      user,
+      orders
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // UPDATE PROFILE
