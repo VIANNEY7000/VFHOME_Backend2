@@ -4,30 +4,33 @@ import { Order } from "../models/order_model.js";
 // CREATEB ORDER
 export const createOrder = async (req, res) => {
   try {
-    const {
-      fullName,
-      email,
-      phone,
-      address,
-      city,
-      state,
-      country,
-      items,
-      totalPrice
-    } = req.body;
+    const user = await User.findById(req.user.id).populate("cart.productId");
 
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: "No items in order" });
+    if (!user.cart || user.cart.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
     }
 
+    const items = user.cart.map(item => ({
+      productId: item.productId._id,
+      name: item.productId.name,
+      price: item.productId.price,
+      image: item.productId.image,
+      quantity: item.quantity
+    }));
+
+    const totalPrice = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
     const order = await Order.create({
-      fullName,
-      email,
-      phone,
-      address,
-      city,
-      state,
-      country,
+      fullName: req.body.fullName,
+      email: req.body.email,
+      phone: req.body.phone,
+      address: req.body.address,
+      city: req.body.city,
+      state: req.body.state,
+      country: req.body.country,
       items,
       totalPrice,
       paymentStatus: "Pending",
@@ -44,6 +47,7 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Get All Orders (Admin)
 export const getAllOrders = async (req, res) => {
