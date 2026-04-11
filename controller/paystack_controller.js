@@ -24,50 +24,77 @@ export const initializePayment = async (req, res) => {
 };
 
 // Verify Payment
+import User from "../models/User.js";
+import { Order } from "../models/order_model.js";
+import axios from "axios";
+
 export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
 
-    const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
-      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
-    });
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+        }
+      }
+    );
 
-    res.status(200).json({ success: true, data: response.data.data });
-  } catch (error) {
-    console.error("PAYSTACK VERIFY ERROR:", error.response?.data || error.message);
-    res.status(500).json({ success: false, message: "Payment verification failed" });
-  }
-};
+    const data = response.data.data;
 
-// Webhook to create order automatically
-export const paystackWebhook = async (req, res) => {
-  try {
-    const event = req.body;
-
-    if (event.event === "charge.success" && event.data.status === "success") {
-      const metadata = event.data.metadata;
-
-      const newOrder = await Order.create({
-        fullName: metadata.fullName,
-        email: metadata.email || event.data.customer.email,
-        phone: metadata.phone,
-        address: metadata.address,
-        city: metadata.city,
-        state: metadata.state,
-        country: metadata.country,
-        items: metadata.cartItems,
-        totalPrice: metadata.totalPrice,
-        paymentStatus: "Paid",
-        paymentReference: event.data.reference,
-        orderStatus: "Pending"
+    if (data.status !== "success") {
+      return res.status(400).json({
+        success: false,
+        message: "Payment not successful"
       });
-
-      console.log("New order created from webhook:", newOrder._id);
     }
 
-    res.sendStatus(200);
+    const orderId = data.metadata.orderId;
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "No orderId in metadata"
+      });
+    }
+
+    // 🔥 FIND ORDER
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // 🔥 UPDATE ORDER
+    order.paymentStatus = "Paid";
+    order.isPaid = true;
+    order.paidAt = new Date();
+    order.paymentReference = reference;
+
+    await order.save();
+
+    // 🔥 CLEAR CART (IMPORTANT)
+    await User.findByIdAndUpdate(order.userId, {
+      $set: { cart: [] }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment verified and order updated",
+      order
+    });
+
   } catch (error) {
-    console.error("Webhook error:", error);
-    res.sendStatus(500);
+    console.error("PAYSTACK VERIFY ERROR:", error.response?.data || error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Payment verification failed"
+    });
   }
 };
+
