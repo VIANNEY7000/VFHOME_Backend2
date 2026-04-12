@@ -135,24 +135,32 @@ export const updateUser = async (req, res) => {
 
 
 
-
-// GET CURRENT USER
-import { Order } from "../models/order_model.js";
-
+// GET USER
 export const getMe = async (req, res) => {
   try {
+    console.log("REQ.USER:", req.user); // 🔥 DEBUG
+
     const user = await User.findById(req.user.id).select("-password");
 
-    const orders = await Order.find({ email: user.email }).sort({ createdAt: -1 });
+    if (!user) {
+      return res.status(404).json({ message: "No user found" });
+    }
+
+    const orders = await Order.find({ email: user.email })
+      .sort({ createdAt: -1 });
 
     res.json({
       user,
       orders
     });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 // UPDATE PROFILE
 export const updateProfile = async (req, res) => {
