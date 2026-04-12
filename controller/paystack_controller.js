@@ -1,5 +1,7 @@
 import axios from "axios";
 import { Order } from "../models/order_model.js";
+import User from "../models/User.js";
+
 
 // Initialize Payment
 export const initializePayment = async (req, res) => {
@@ -24,10 +26,6 @@ export const initializePayment = async (req, res) => {
 };
 
 // Verify Payment
-import User from "../models/User.js";
-import { Order } from "../models/order_model.js";
-import axios from "axios";
-
 export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
@@ -98,3 +96,63 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
+// WEBHOOK
+import crypto from "crypto";
+import { Order } from "../models/order_model.js";
+import User from "../models/User.js";
+
+export const paystackWebhook = async (req, res) => {
+  try {
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+
+    // 1. VERIFY PAYSTACK SIGNATURE (VERY IMPORTANT)
+    const hash = crypto
+      .createHmac("sha512", secret)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
+
+    if (hash !== req.headers["x-paystack-signature"]) {
+      return res.status(401).send("Invalid signature");
+    }
+
+    const event = req.body;
+
+    // 2. ONLY PROCESS SUCCESSFUL PAYMENTS
+    if (event.event === "charge.success" && event.data.status === "success") {
+      const metadata = event.data.metadata;
+
+      if (!metadata?.items || !metadata?.email) {
+        return res.status(400).send("Missing metadata");
+      }
+
+      // 3. CREATE ORDER
+      const order = await Order.create({
+        fullName: metadata.fullName,
+        email: metadata.email,
+        phone: metadata.phone,
+        address: metadata.address,
+        city: metadata.city,
+        state: metadata.state,
+        country: metadata.country,
+        items: metadata.items,
+        totalPrice: metadata.totalPrice,
+        paymentStatus: "Paid",
+        paymentReference: event.data.reference,
+        orderStatus: "Pending"
+      });
+
+      // 4. OPTIONAL: CLEAR USER CART
+      await User.findOneAndUpdate(
+        { email: metadata.email },
+        { $set: { cart: [] } }
+      );
+
+      console.log("✅ Order created:", order._id);
+    }
+
+    return res.sendStatus(200);
+  } catch (error) {
+    console.error("Webhook error:", error.message);
+    return res.sendStatus(500);
+  }
+};
