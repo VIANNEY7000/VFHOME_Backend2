@@ -3,16 +3,19 @@ import {
   createOrder,
   getAllOrders,
   getUserOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  getRevenueByMonth
 } from "../controller/order_controller.js";
-import { verifyToken, isAdmin } from '../middleware/auth_middleware.js';
+import { verifyToken, adminOnly } from '../middleware/auth_middleware.js';
 
 
 const router = express.Router();
 
 router.post("/create", verifyToken, createOrder);
 router.get("/my-orders", verifyToken, getUserOrders);
-router.get("/", verifyToken, isAdmin, getAllOrders);
-router.put("/update/:id", verifyToken, isAdmin, updateOrderStatus);
+router.get("/", verifyToken, adminOnly, getAllOrders);
+router.put("/update/:id", verifyToken, adminOnly, updateOrderStatus);
+
+router.get("/revenue-monthly", verifyToken, adminOnly, getRevenueByMonth);
 
 export default router;

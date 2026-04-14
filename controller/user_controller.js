@@ -274,6 +274,8 @@ export const resetPassword = async (req, res) => {
 };
 
 
+// ==========================================CART===================================================
+
 
 // ADD TO CART
 export const addToCart = async (req, res) => {

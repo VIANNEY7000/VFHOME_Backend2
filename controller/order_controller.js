@@ -24,6 +24,7 @@ export const createOrder = async (req, res) => {
     );
 
     const order = await Order.create({
+      user: req.user.id,
       fullName: req.body.fullName,
       email: req.body.email,
       phone: req.body.phone,
@@ -58,6 +59,8 @@ export const getAllOrders = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
 };
+
+
 
 // GET USER ORDER
 import User from "../models/User.js";
@@ -102,5 +105,55 @@ export const updateOrderStatus = async (req, res) => {
     res.status(200).json({ success: true, message: "Order updated", order });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+
+// Getorderby month
+export const getRevenueByMonth = async (req, res) => {
+  try {
+    const revenue = await Order.aggregate([
+      {
+        $match: {
+          isPaid: true
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          totalRevenue: { $sum: "$totalPrice" }
+        }
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1
+        }
+      }
+    ]);
+
+    const monthNames = [
+      "Jan","Feb","Mar","Apr","May","Jun",
+      "Jul","Aug","Sep","Oct","Nov","Dec"
+    ];
+
+    const formatted = revenue.map(item => ({
+      month: monthNames[item._id.month - 1],
+      revenue: item.totalRevenue
+    }));
+
+    res.json({
+      success: true,
+      data: formatted
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };

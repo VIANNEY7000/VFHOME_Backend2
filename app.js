@@ -6,6 +6,7 @@ import userRoute from './routes/user_route.js'
 import producRouter from './routes/product_route.js'
 import orderRoute from './routes/order_route.js'
 import paystackRoute from './routes/paystack_route.js'
+import admin from './routes/admin_route.js'
 
 
 dotenv.config()
@@ -21,6 +22,7 @@ app.use('/api/auth', userRoute)
 app.use('/api/products', producRouter)
 app.use('/api/orders', orderRoute)
 app.use('/api/paystack', paystackRoute)
+app.use('/api/admin', admin)
 
 
 // for debuging

@@ -1,6 +1,6 @@
 import express from 'express';
 import { register, login, forgotPassword, resetPassword, updateUser, deleteUser, getAllUsers, getMe, addToCart, getCart, updateProfile, clearCart, removeFromCart, updateCartQuantity } from '../controller/user_controller.js';
-import { verifyToken, isAdmin } from '../middleware/auth_middleware.js';
+import { verifyToken, adminOnly } from '../middleware/auth_middleware.js';
 
 const router = express.Router();
 
@@ -23,15 +23,15 @@ router.put('/cart/update', verifyToken, updateCartQuantity);
 
 
 // Admin-only routes
-router.get('/', verifyToken, isAdmin, getAllUsers);
-router.put('/update/:id', verifyToken, isAdmin, updateUser);
-router.delete('/delete/:id', verifyToken, isAdmin, deleteUser);
+router.get('/', verifyToken, adminOnly, getAllUsers);
+router.put('/update/:id', verifyToken, adminOnly, updateUser);
+router.delete('/delete/:id', verifyToken, adminOnly, deleteUser);
 
 // Test routes
 router.get('/protected', verifyToken, (req, res) => {
   res.json({ message: "Access granted", user: req.user });
 });
-router.get('/admin', verifyToken, isAdmin, (req, res) => {
+router.get('/admin', verifyToken, adminOnly, (req, res) => {
   res.json({ message: "Welcome Admin" });
 });
 

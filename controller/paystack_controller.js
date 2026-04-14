@@ -1,6 +1,8 @@
 import axios from "axios";
 import { Order } from "../models/order_model.js";
 import User from "../models/User.js";
+import crypto from "crypto";
+
 
 
 // Initialize Payment
@@ -96,11 +98,10 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
-// WEBHOOK
-import crypto from "crypto";
-import { Order } from "../models/order_model.js";
-import User from "../models/User.js";
 
+
+
+// WEBHOOK
 export const paystackWebhook = async (req, res) => {
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
