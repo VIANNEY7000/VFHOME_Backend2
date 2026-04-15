@@ -12,7 +12,7 @@ export const initializePayment = async (req, res) => {
 
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
-      { email, amount, callback_url: "https://vianney-fashion-home.vercel.app/payment-success", metadata },
+      { email, amount, callback_url: "https://vianney-fashion-home.vercel.app/#/payment-success", metadata },
       { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" } }
     );
 
