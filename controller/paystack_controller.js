@@ -27,6 +27,9 @@ export const initializePayment = async (req, res) => {
   }
 };
 
+
+
+
 // Verify Payment
 export const verifyPayment = async (req, res) => {
   try {
@@ -50,54 +53,23 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    const orderId = data.metadata.orderId;
-
-    if (!orderId) {
-      return res.status(400).json({
-        success: false,
-        message: "No orderId in metadata"
-      });
-    }
-
-    // 🔥 FIND ORDER
-    const order = await Order.findById(orderId);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found"
-      });
-    }
-
-    // 🔥 UPDATE ORDER
-    order.paymentStatus = "Paid";
-    order.isPaid = true;
-    order.paidAt = new Date();
-    order.paymentReference = reference;
-
-    await order.save();
-
-    // 🔥 CLEAR CART (IMPORTANT)
-    await User.findByIdAndUpdate(order.userId, {
-      $set: { cart: [] }
-    });
-
+    // ✅ Payment confirmed - webhook handles order creation
     return res.status(200).json({
       success: true,
-      message: "Payment verified and order updated",
-      order
+      message: "Payment verified successfully",
+      email: data.customer.email,
+      amount: data.amount / 100,
+      reference: data.reference
     });
 
   } catch (error) {
     console.error("PAYSTACK VERIFY ERROR:", error.response?.data || error.message);
-
     return res.status(500).json({
       success: false,
       message: "Payment verification failed"
     });
   }
 };
-
 
 
 
