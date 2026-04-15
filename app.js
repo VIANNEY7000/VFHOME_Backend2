@@ -1,4 +1,4 @@
-import  dotenv  from 'dotenv'
+import dotenv from 'dotenv'
 import express from 'express'
 import cors from "cors"
 import connectDB from "./config/db.js"
@@ -8,34 +8,24 @@ import orderRoute from './routes/order_route.js'
 import paystackRoute from './routes/paystack_route.js'
 import admin from './routes/admin_route.js'
 
-
 dotenv.config()
 
 const app = express()
 app.use(cors());
 
+// ✅ Webhook MUST come before express.json() — needs raw body
+app.use('/api/paystack/webhook', express.raw({ type: 'application/json' }));
+
+// ✅ All other routes use normal JSON parsing
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// ROUTE
+// ROUTES
 app.use('/api/auth', userRoute)
 app.use('/api/products', producRouter)
 app.use('/api/orders', orderRoute)
 app.use('/api/paystack', paystackRoute)
 app.use('/api/admin', admin)
-
-
-// for debuging
-app.get('/test-paystack-key', (req, res) => {
-  res.json({
-    keyExists: !!process.env.PAYSTACK_SECRET_KEY,
-    keyPreview: process.env.PAYSTACK_SECRET_KEY
-      ? process.env.PAYSTACK_SECRET_KEY.slice(0, 10) + "..."
-      : "NOT FOUND",
-    testVar: process.env.TEST_VAR || "TEST_VAR NOT FOUND",
-    nodeEnv: process.env.NODE_ENV || "NODE_ENV NOT SET"
-  })
-})
 
 
 

@@ -12,7 +12,7 @@ export const initializePayment = async (req, res) => {
 
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
-      { email, amount, callback_url: "http://localhost:5173/payment-success", metadata },
+      { email, amount, callback_url: "https://vfhome-backend2-3.onrender.com/payment-success", metadata },
       { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" } }
     );
 
@@ -73,33 +73,43 @@ export const verifyPayment = async (req, res) => {
 
 
 
-// WEBHOOK
+//PAYSTACK WEBHOOK
 export const paystackWebhook = async (req, res) => {
   console.log("🔔 WEBHOOK HIT:", req.body?.event);
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
 
-    // 1. VERIFY PAYSTACK SIGNATURE (VERY IMPORTANT)
+    // ✅ Handle raw body correctly
+    const rawBody = req.body instanceof Buffer ? req.body : Buffer.from(JSON.stringify(req.body));
+
     const hash = crypto
       .createHmac("sha512", secret)
-      .update(JSON.stringify(req.body))
+      .update(rawBody) // ✅ use rawBody, not JSON.stringify(req.body)
       .digest("hex");
 
     if (hash !== req.headers["x-paystack-signature"]) {
+      console.log("❌ Invalid signature");
       return res.status(401).send("Invalid signature");
     }
 
-    const event = req.body;
+    // ✅ Parse the body after signature check
+    const event = req.body instanceof Buffer ? JSON.parse(req.body) : req.body;
 
-    // 2. ONLY PROCESS SUCCESSFUL PAYMENTS
+    console.log("✅ Signature valid, event:", event.event);
+    console.log("📦 Metadata:", JSON.stringify(event.data?.metadata));
+
     if (event.event === "charge.success" && event.data.status === "success") {
       const metadata = event.data.metadata;
 
+      console.log("👤 userId:", metadata?.userId);
+      console.log("📧 email:", metadata?.email);
+      console.log("🛒 items:", metadata?.items);
+
       if (!metadata?.items || !metadata?.email) {
+        console.log("❌ Missing metadata");
         return res.status(400).send("Missing metadata");
       }
 
-      // 3. CREATE ORDER
       const order = await Order.create({
         userId: metadata.userId,
         fullName: metadata.fullName,
@@ -116,7 +126,6 @@ export const paystackWebhook = async (req, res) => {
         orderStatus: "Pending"
       });
 
-      // 4. OPTIONAL: CLEAR USER CART
       await User.findOneAndUpdate(
         { email: metadata.email },
         { $set: { cart: [] } }
@@ -127,7 +136,7 @@ export const paystackWebhook = async (req, res) => {
 
     return res.sendStatus(200);
   } catch (error) {
-    console.error("Webhook error:", error.message);
+    console.error("❌ Webhook error:", error.message);
     return res.sendStatus(500);
   }
 };
