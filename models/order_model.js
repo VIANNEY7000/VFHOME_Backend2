@@ -31,6 +31,11 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: "Nigeria"
     },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: false 
+    },
 
     items: [
       {

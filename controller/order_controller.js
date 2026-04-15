@@ -1,4 +1,6 @@
 import { Order } from "../models/order_model.js";
+import User from "../models/User.js";
+
 
 
 // CREATEB ORDER
@@ -63,19 +65,10 @@ export const getAllOrders = async (req, res) => {
 
 
 // GET USER ORDER
-import User from "../models/User.js";
 
 export const getUserOrders = async (req, res) => {
   try {
-    // ✅ Get user first
-    const user = await User.findById(req.user.id);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // ✅ Use REAL email from DB
-    const orders = await Order.find({ email: user.email })
+    const orders = await Order.find({ userId: req.user.id })
       .sort({ createdAt: -1 });
 
     res.json({

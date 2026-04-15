@@ -128,6 +128,7 @@ export const paystackWebhook = async (req, res) => {
 
       // 3. CREATE ORDER
       const order = await Order.create({
+        userId: metadata.userId,
         fullName: metadata.fullName,
         email: metadata.email,
         phone: metadata.phone,
