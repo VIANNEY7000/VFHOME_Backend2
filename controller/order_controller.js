@@ -26,7 +26,7 @@ export const createOrder = async (req, res) => {
     );
 
     const order = await Order.create({
-      user: req.user.id,
+      userId: req.user.id,
       fullName: req.body.fullName,
       email: req.body.email,
       phone: req.body.phone,
@@ -65,21 +65,26 @@ export const getAllOrders = async (req, res) => {
 
 
 // GET USER ORDER
-
 export const getUserOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.user.id })
-      .sort({ createdAt: -1 });
+    const user = await User.findById(req.user.id);
+
+    const orders = await Order.find({
+      $or: [
+        { userId: req.user.id },
+        { email: user.email }
+      ]
+    }).sort({ createdAt: -1 });
 
     res.json({
       success: true,
       orders
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 
 // Update Order Status
