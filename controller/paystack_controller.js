@@ -75,6 +75,7 @@ export const verifyPayment = async (req, res) => {
 
 // WEBHOOK
 export const paystackWebhook = async (req, res) => {
+  console.log("🔔 WEBHOOK HIT:", req.body?.event);
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
 
