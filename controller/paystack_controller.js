@@ -30,7 +30,7 @@ export const initializePayment = async (req, res) => {
 
 
 
-// Verify Payment
+// VERYFYING PAYMENT
 export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
