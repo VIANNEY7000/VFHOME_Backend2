@@ -32,7 +32,15 @@ const userSchema = new mongoose.Schema({
       },
       quantity: Number
     }
-  ]
+  ],
+
+  wishlist: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product"
+  }
+],
+
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

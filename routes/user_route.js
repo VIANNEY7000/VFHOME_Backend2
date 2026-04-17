@@ -1,5 +1,7 @@
 import express from 'express';
-import { register, login, forgotPassword, resetPassword, updateUser, deleteUser, getAllUsers, getMe, addToCart, getCart, updateProfile, clearCart, removeFromCart, updateCartQuantity } from '../controller/user_controller.js';
+import { register, login, forgotPassword, resetPassword, updateUser, deleteUser, getAllUsers, getMe, addToCart, getCart, updateProfile, clearCart, removeFromCart, updateCartQuantity,addToWishlist,
+  getWishlist,
+  removeFromWishlist } from '../controller/user_controller.js';
 import { verifyToken, adminOnly } from '../middleware/auth_middleware.js';
 
 const router = express.Router();
@@ -20,6 +22,12 @@ router.get("/cart",verifyToken, getCart);
 router.delete('/cart/clear', verifyToken, clearCart);
 router.delete('/cart/remove/:productId', verifyToken, removeFromCart);
 router.put('/cart/update', verifyToken, updateCartQuantity);
+
+
+// Wishlist
+router.post('/wishlist', verifyToken, addToWishlist);
+router.get('/wishlist', verifyToken, getWishlist);
+router.delete('/wishlist/:productId', verifyToken, removeFromWishlist);
 
 
 // Admin-only routes

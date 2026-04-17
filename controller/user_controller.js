@@ -429,3 +429,84 @@ export const updateCartQuantity = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+// ================================== WISH LIST =====================================
+
+// ADD TO WISHLIST
+export const addToWishlist = async (req, res) => {
+  const { productId } = req.body;
+
+  if (!productId) {
+    return res.status(400).json({ message: "Product ID is required" });
+  }
+
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user.wishlist) {
+      user.wishlist = [];
+    }
+
+    const alreadyExists = user.wishlist.some(
+      (item) => item.toString() === productId
+    );
+
+    if (alreadyExists) {
+      return res.status(400).json({ message: "Product already in wishlist" });
+    }
+
+    user.wishlist.push(productId);
+    await user.save();
+
+    const updatedUser = await User.findById(req.user.id).populate("wishlist");
+
+    res.status(200).json({
+      message: "Added to wishlist",
+      wishlist: updatedUser.wishlist
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET WISHLIST
+export const getWishlist = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate("wishlist");
+
+    res.status(200).json({
+      wishlist: user.wishlist || []
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// REMOVE FROM WISHLIST
+export const removeFromWishlist = async (req, res) => {
+  const { productId } = req.params;
+
+  if (!productId) {
+    return res.status(400).json({ message: "Product ID is required" });
+  }
+
+  try {
+    const user = await User.findById(req.user.id);
+
+    user.wishlist = user.wishlist.filter(
+      (item) => item.toString() !== productId
+    );
+
+    await user.save();
+
+    const updatedUser = await User.findById(req.user.id).populate("wishlist");
+
+    res.status(200).json({
+      message: "Removed from wishlist",
+      wishlist: updatedUser.wishlist
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
