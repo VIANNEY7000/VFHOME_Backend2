@@ -222,7 +222,7 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     // Send raw token in link (NOT hashed)
-    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    const resetLink = `http://vianney-fashion-home.vercel.app/reset-password/${resetToken}`;
 
     console.log("Reset link:", resetLink);
 
