@@ -79,12 +79,11 @@ export const paystackWebhook = async (req, res) => {
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
 
-    // ✅ Handle raw body correctly
     const rawBody = req.body instanceof Buffer ? req.body : Buffer.from(JSON.stringify(req.body));
 
     const hash = crypto
       .createHmac("sha512", secret)
-      .update(rawBody) // ✅ use rawBody, not JSON.stringify(req.body)
+      .update(rawBody)
       .digest("hex");
 
     if (hash !== req.headers["x-paystack-signature"]) {
@@ -92,7 +91,6 @@ export const paystackWebhook = async (req, res) => {
       return res.status(401).send("Invalid signature");
     }
 
-    // ✅ Parse the body after signature check
     const event = req.body instanceof Buffer ? JSON.parse(req.body) : req.body;
 
     console.log("✅ Signature valid, event:", event.event);
@@ -102,34 +100,55 @@ export const paystackWebhook = async (req, res) => {
       const metadata = event.data.metadata;
 
       console.log("👤 userId:", metadata?.userId);
-      console.log("📧 email:", metadata?.email);
-      console.log("🛒 items:", metadata?.items);
 
-      if (!metadata?.items || !metadata?.email) {
-        console.log("❌ Missing metadata");
-        return res.status(400).send("Missing metadata");
+      if (!metadata?.userId) {
+        console.log("❌ Missing userId in metadata");
+        return res.sendStatus(200);
       }
+
+      // ✅ Fetch user and cart from DB
+      const user = await User.findById(metadata.userId).populate("cart.productId");
+
+      if (!user) {
+        console.log("❌ User not found");
+        return res.sendStatus(200);
+      }
+
+      console.log("🛒 Cart items:", user.cart.length);
+
+      // ✅ Build items from DB cart
+      const items = user.cart.map(item => ({
+        productId: item.productId._id,
+        name: item.productId.name,
+        price: item.productId.price,
+        image: item.productId.image,
+        quantity: item.quantity
+      }));
+
+      const totalPrice = items.reduce(
+        (sum, item) => sum + item.price * item.quantity, 0
+      );
 
       const order = await Order.create({
         userId: metadata.userId,
         fullName: metadata.fullName,
-        email: metadata.email,
+        email: user.email,
         phone: metadata.phone,
         address: metadata.address,
         city: metadata.city,
         state: metadata.state,
         country: metadata.country,
-        items: metadata.items,
-        totalPrice: metadata.totalPrice,
+        items,
+        totalPrice,
         paymentStatus: "Paid",
         paymentReference: event.data.reference,
         orderStatus: "Pending"
       });
 
-      await User.findOneAndUpdate(
-        { email: metadata.email },
-        { $set: { cart: [] } }
-      );
+      // ✅ Clear cart
+      await User.findByIdAndUpdate(metadata.userId, {
+        $set: { cart: [] }
+      });
 
       console.log("✅ Order created:", order._id);
     }
