@@ -1,7 +1,10 @@
 import User from '../models/User.js';
+import { Order } from '../models/order_model.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
+
 
 // REGISTER
 export const register = async (req, res) => {
@@ -196,6 +199,14 @@ export const updateProfile = async (req, res) => {
 
 
 
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
 // FORGOTTEN PASSWORD
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -204,37 +215,44 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Generate raw token
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetToken = crypto.randomBytes(32).toString('hex');
 
-    // Hash token before saving (SECURITY FIX)
     const hashedToken = crypto
-      .createHash("sha256")
+      .createHash('sha256')
       .update(resetToken)
-      .digest("hex");
+      .digest('hex');
 
     user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     await user.save();
 
-    // Send raw token in link (NOT hashed)
-    const resetLink = `http://vianney-fashion-home.vercel.app/reset-password/${resetToken}`;
+   const resetLink = `https://vianney-fashion-home.vercel.app/#/reset-password/${resetToken}`;
 
-    console.log("Reset link:", resetLink);
-
-    res.status(200).json({
-      message: "Password reset link sent"
+    await transporter.sendMail({
+      from: `"Vianney Fashion Home" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: 'Reset Your Password',
+      html: `
+        <h2>Password Reset</h2>
+        <p>You requested a password reset.</p>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetLink}" target="_blank">${resetLink}</a>
+        <p>This link will expire in 10 minutes.</p>
+      `
     });
 
+    return res.status(200).json({
+      message: 'Password reset link sent to your email'
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Forgot password error:', error);
+    return res.status(500).json({ message: error.message });
   }
 };
-
 
 // RESET PASSWORD
 export const resetPassword = async (req, res) => {
@@ -242,11 +260,10 @@ export const resetPassword = async (req, res) => {
   const { password } = req.body;
 
   try {
-    // Hash incoming token to match DB
     const hashedToken = crypto
-      .createHash("sha256")
+      .createHash('sha256')
       .update(token)
-      .digest("hex");
+      .digest('hex');
 
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
@@ -254,24 +271,22 @@ export const resetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid or expired token" });
+      return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    // Hash new password
     user.password = await bcrypt.hash(password, 10);
-
-    // Clear reset fields
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
     await user.save();
 
-    res.json({ message: "Password reset successful" });
-
+    return res.json({ message: 'Password reset successful' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
+
+
 
 
 // ==========================================CART===================================================
